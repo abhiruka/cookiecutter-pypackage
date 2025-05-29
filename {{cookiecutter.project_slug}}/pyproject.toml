@@ -1,68 +1,112 @@
+# ---------------------------------------------------------------------
+# Build & packaging metadata  (PEP 621 + src/ layout)
+# ---------------------------------------------------------------------
 [build-system]
-requires = ["setuptools>=61.0"]
+requires      = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "{{cookiecutter.project_slug}}"
-version = "{{cookiecutter.version}}"
-description = "{{cookiecutter.project_short_description}}"
-readme = "README.rst"
-authors = [
-  {name = "{{cookiecutter.full_name}}", email = "{{cookiecutter.email}}"}
+name            = "{{ cookiecutter.project_slug }}"
+version         = "{{ cookiecutter.version }}"
+description     = "{{ cookiecutter.project_short_description }}"
+readme          = "README.rst"
+requires-python = ">= {{ cookiecutter.python_version | default('3.10') }}"
+authors         = [
+  { name = "{{ cookiecutter.full_name }}", email = "{{ cookiecutter.email }}" },
 ]
-maintainers = [
-  {name = "{{cookiecutter.full_name}}", email = "{{cookiecutter.email}}"}
+maintainers     = [
+  { name = "{{ cookiecutter.full_name }}", email = "{{ cookiecutter.email }}" },
 ]
-classifiers = [
+license         = { text = "{{ cookiecutter.open_source_license }}" }
 
-]
-license = {text = "{{cookiecutter.open_source_license}}"}
 dependencies = [
-  {% if cookiecutter.command_line_interface.lower() == "typer" -%}
-  "typer"
-{%- endif %}
+  {%- if cookiecutter.command_line_interface.lower() == "typer" -%}
+  "typer",
+  {%- endif %}
 ]
 
 [project.optional-dependencies]
 dev = [
-    "coverage",  # testing
-    "mypy",  # linting
-    "pytest",  # testing
-    "ruff"  # linting
+  "pytest>=8",
+  "pytest-cov",
+  "ruff>=0.4"
 ]
 
 [project.urls]
+homepage  = "https://github.com/{{ cookiecutter.__gh_slug }}"
+bugs      = "https://github.com/{{ cookiecutter.__gh_slug }}/issues"
+changelog = "https://github.com/{{ cookiecutter.__gh_slug }}/blob/master/changelog.md"
 
-bugs = "https://github.com/{{cookiecutter.__gh_slug}}/issues"
-changelog = "https://github.com/{{cookiecutter.__gh_slug}}/blob/master/changelog.md"
-homepage = "https://github.com/{{cookiecutter.__gh_slug}}"
-
-[tool.setuptools]
-package-dir = {"" = "src"}
-
-[tool.setuptools.package-data]
-"*" = ["*.*"]
-
-{% if cookiecutter.command_line_interface == 'Yes' %}
+# CLI entry point (optional)
+{% if cookiecutter.command_line_interface == 'Yes' -%}
 [project.scripts]
-{{cookiecutter.slug}} = "{{cookiecutter.slug}}.cli:app"
-{% endif %}
+{{ cookiecutter.slug }} = "{{ cookiecutter.slug }}.cli:app"
+{%- endif %}
 
+# Tell setuptools we’re using a src/ layout
+[tool.setuptools.packages.find]
+where = ["src"]
 
-# Mypy
-# ----
+# ---------------------------------------------------------------------
+# Ruff -- lint, import-sort, format, and static-type-checking
+# ---------------------------------------------------------------------
+[tool.ruff]
+target-version    = "py{{ cookiecutter.python_version | default('3.10') | replace('.', '') }}"
+line-length       = {{ cookiecutter.line_length | default('88') }}
+respect-gitignore = true
 
+exclude = [
+  ".bzr", ".direnv", ".eggs", ".git", ".hg",
+  ".mypy_cache", ".nox", ".pants.d", ".ruff_cache",
+  ".svn", ".tox", ".venv", "__pypackages__", "_build",
+  "buck-out", "build", "dist", "node_modules",
+  "venv", "env",           # ← conda / venv folders
+  "migrations",
+]
+
+fixable   = ["ALL"]
+unfixable = []
+
+[tool.ruff.lint]
+select = [
+  "E", "F", "W",              # pycodestyle / Pyflakes
+  "I",                        # isort
+  "N",                        # pep8-naming
+  "UP",                       # pyupgrade
+  "ANN",                      # flake8-annotations
+  "B",                        # flake8-bugbear
+  "C4",                       # flake8-comprehensions
+  "T20",                      # flake8-print
+  "RUF",                      # Ruff-specific rules
+  "TC",                       # Ruff’s type checker
+]
+ignore = ["T201"]             # allow plain print() in code
+
+[tool.ruff.type_checking]
+strict = true                 # flag missing annotations, etc.
+
+[tool.ruff.format]            # Black-compatible; defaults are fine
+# quote-style = "double"
+# indent-style = "space"
+
+# ---------------------------------------------------------------------
+# Pytest
+# ---------------------------------------------------------------------
+[tool.pytest.ini_options]
+addopts      = "--cov={{ cookiecutter.project_slug }} --cov-report=term-missing -ra"
+testpaths    = ["tests"]
+python_files = ["test_*.py"]
+
+# ---------------------------------------------------------------------
+# (Optional) Mypy settings – keep if you still want mypy in CI
+# ---------------------------------------------------------------------
 [tool.mypy]
-files = "."
-
-# Use strict defaults
+files  = "."
 strict = true
 warn_unreachable = true
-warn_no_return = true
+warn_no_return   = true
 
 [[tool.mypy.overrides]]
-# Don't require test functions to include types
-module = "tests.*"
+module            = "tests.*"
 allow_untyped_defs = true
 disable_error_code = "attr-defined"
-
